@@ -4,7 +4,7 @@ import axios from "axios";
 import { Button } from "@/components/retroui/Button";
 import { Card } from "@/components/retroui/Card";
 import { Dialog } from "@/components/retroui/Dialog";  
-import { useSonner } from "sonner";
+import { toast } from "sonner";
 import { Input } from "@/components/retroui/Input";
 import { Textarea } from "@/components/retroui/Textarea";
 
@@ -13,6 +13,7 @@ export default function CampaignsPage() {
   const [tab, setTab] = useState("all");
   const [edit, setEdit] = useState(false);
   const [add, setAdd] = useState(false);
+  const [c, setC] = useState([]);
   const [form, setForm] = useState({ name: "", startDateandTime: "", endDateandTime: "", url: "", description: "" });
 
   const fetchCampaigns = async (endpoint = "http://localhost:5050/api/campaign") => {
@@ -32,20 +33,74 @@ export default function CampaignsPage() {
   }, [tab]);
 
   const handleDelete = async (id) => {
-    await axios.delete(`http://localhost:5050/api/campaign/${id}`);
-    fetchCampaigns(`http://localhost:5050/api/campaign/${tab === "all" ? "" : tab}`);
+    try{
+        const res = await axios.delete(`http://localhost:5050/api/campaign/${id}`);
+        if(res){
+          toast.success("Campaign record deleted successfully", {
+      richColors: true,
+    })
+        }
+        else{
+          toast.error("COuld not delete the campaign")
+        }
+        fetchCampaigns(`http://localhost:5050/api/campaign/${tab === "all" ? "" : tab}`);
+    }catch(error){
+      toast.error(error, {
+      richColors: true,
+    })
+    }
   };
 
   const handleEdit = async (id) => {
-    await axios.patch(`http://localhost:5050/api/campaign/${id}`);
-    fetchCampaigns(`http://localhost:5050/api/campaign/${tab === "all" ? "" : tab}`);
+    try{
+      const res = await axios.patch(`http://localhost:5050/api/campaign/${id}`, form);
+      if(res){
+        toast.success("Campaign edited successfully", {
+          richColors: true,
+        })
+        fetchCampaigns(`http://localhost:5050/api/campaign/${tab === "all" ? "" : tab}`);
+      }
+      else{
+        toast.error("Campaign could not be edited", {
+      richColors: true,
+    })
+      }
+    }catch(error){
+      toast.error(error, {
+      richColors: true,
+    })
+    }
+    setEdit(false)
   };
+
+  const editDetails = (c) => {
+    setEdit(true)
+    setC(c)
+    setForm({
+      name:c.name,
+      description:c.description,
+      startDateandTime:c.startDateandTime,
+      endDateandTime:c.endDateandTime,
+      url:c.url
+    })
+  }
 
   const handleSubmit = async () => {
     try {
-      await axios.post("http://localhost:5050/api/campaign", form);
+      const res = await axios.post("http://localhost:5050/api/campaign", form);
+      if(res){
+        toast.success("Campaign added successfully", {
+      richColors: true,
+    })
+      }
+      else{
+        toast.error("Campaign could not be added", {
+      richColors: true,
+    })
+      }
     } catch (error) {
       console.log(error)
+      toast.error(error)
     }
     setAdd(false);
     fetchCampaigns("http://localhost:5050/api/campaign");
@@ -80,7 +135,7 @@ export default function CampaignsPage() {
               <a href={c.url} className="text-blue-600 text-sm break-words" target="_blank">{c.url}</a>
 
               <div className="mt-3 flex gap-2">
-                <Button size="sm" variant="default" onClick={() => setEdit(true)}>Edit</Button>
+                <Button size="sm" variant="default" onClick={() => editDetails(c)}>Edit</Button>
                 <Button size="sm" variant="default" onClick={() => handleDelete(c._id)}>Delete</Button>
               </div>
             </Card.Content>
@@ -96,15 +151,15 @@ export default function CampaignsPage() {
         }
       }}>
         <Dialog.Content>
-          <Dialog.Header>Add Campaign</Dialog.Header>
+          <Dialog.Header>{add?"Add":"Edit"} Campaign</Dialog.Header>
           <div className="space-y-3 p-6 rounded-lg">
-            <Input className="w-full border p-2 rounded" placeholder="Name" onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <Input className="w-full border p-2 rounded" type="datetime-local" onChange={(e) => setForm({ ...form, startDateandTime: e.target.value })} />
-            <Input className="w-full border p-2 rounded" type="datetime-local" onChange={(e) => setForm({ ...form, endDateandTime: e.target.value })} />
-            <Input className="w-full border p-2 rounded" placeholder="URL" onChange={(e) => setForm({ ...form, url: e.target.value })} />
-            <Textarea className="w-full border p-2 rounded" placeholder="Description" onChange={(e) => setForm({ ...form, description: e.target.value })}></Textarea>
+            <Input className="w-full border p-2 rounded" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <Input className="w-full border p-2 rounded" type="datetime-local" value={form.startDateandTime} onChange={(e) => setForm({ ...form, startDateandTime: e.target.value })} />
+            <Input className="w-full border p-2 rounded" type="datetime-local" value={form.endDateandTime} onChange={(e) => setForm({ ...form, endDateandTime: e.target.value })} />
+            <Input className="w-full border p-2 rounded" placeholder="URL" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} />
+            <Textarea className="w-full border p-2 rounded" placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}></Textarea>
             {add && (<Button onClick={handleSubmit}>Save</Button>)}
-            {edit && (<Button onClick={handleEdit}>Update</Button>)}
+            {edit && (<Button onClick={()=>handleEdit(c._id)}>Update</Button>)}
           </div>
         </Dialog.Content>
       </Dialog>
